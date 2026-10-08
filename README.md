@@ -79,7 +79,14 @@ En Android se usa SQLite (`expo-sqlite`). En la web se usa IndexedDB. SQLite den
 ### Cómo se publica
 
 - [`.github/workflows/pages.yml`](.github/workflows/pages.yml) — en cada push a `main` exporta la web y la despliega con las acciones oficiales de GitHub Pages (`upload-pages-artifact` y `deploy-pages`). El origen de Pages tiene que ser **GitHub Actions**.
-- [`.github/workflows/android-apk.yml`](.github/workflows/android-apk.yml) — cuando se sube una etiqueta `v*` (por ejemplo `v1.0.0`) hace `expo prebuild` y `gradlew assembleRelease`, sin cuenta de Expo ni de EAS, y adjunta el APK al Release.
+- [`.github/workflows/android-apk.yml`](.github/workflows/android-apk.yml) — cuando se sube una etiqueta `v*` (por ejemplo `v1.0.0`) hace `expo prebuild` y `gradlew assembleRelease`, sin cuenta de Expo ni de EAS, y adjunta el APK al Release. Si el Release ya existe, sustituye el APK del mismo nombre y deja la descripción como está.
+
+Para volver a generar el APK de un Release que ya existe (por ejemplo `v1.0.0`) después de un arreglo en `main`:
+
+1. En GitHub, abre **Actions → APK de Android → Run workflow**.
+2. Elige la rama `main` y escribe la etiqueta, `v1.0.0`.
+
+Eso compila el código actual de `main` y sube `mis-gastos-v1.0.0.apk` al Release de esa etiqueta. Volver a lanzar el intento fallido no sirve: ese intento sigue usando el commit viejo de la etiqueta, sin el arreglo.
 
 ## Licencia
 
