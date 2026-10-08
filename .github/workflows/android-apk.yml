@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Etiqueta del Release al que se adjunta el APK (por ejemplo v1.0.0)
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -11,18 +17,20 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
@@ -33,7 +41,7 @@ jobs:
       - name: Prebuild de Android
         run: npx expo prebuild --platform android --no-install
         env:
-          APP_VERSION: ${{ github.ref_name }}
+          APP_VERSION: ${{ env.RELEASE_TAG }}
           ANDROID_VERSION_CODE: ${{ github.run_number }}
 
       - name: Compilar APK
@@ -41,18 +49,16 @@ jobs:
         run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
 
       - name: Renombrar APK
-        run: cp android/app/build/outputs/apk/release/app-release.apk "mis-gastos-${GITHUB_REF_NAME}.apk"
+        run: cp android/app/build/outputs/apk/release/app-release.apk "mis-gastos-${RELEASE_TAG}.apk"
 
       - name: Publicar en el Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
-          files: mis-gastos-${{ github.ref_name }}.apk
-          generate_release_notes: true
-          body: |
-            APK de Mis Gastos para instalar entre amigos.
-
-            Está firmado con la clave de depuración de Expo, la misma en cada compilación, así que una versión nueva se puede instalar encima de la anterior.
-
-            No está pensado para Google Play. Los datos siguen solo en el teléfono.
+          tag_name: ${{ env.RELEASE_TAG }}
+          files: mis-gastos-${{ env.RELEASE_TAG }}.apk
+          overwrite_files: true
+          # En un Release que ya existe, un cuerpo vacío deja la descripción como está.
+          generate_release_notes: ${{ github.event_name == 'push' }}
+          body: ${{ github.event_name == 'push' && 'APK de Mis Gastos para instalar entre amigos. Está firmado con la clave de depuración de Expo, la misma en cada compilación, así que una versión nueva se puede instalar encima de la anterior. No está pensado para Google Play. Los datos siguen solo en el teléfono.' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
