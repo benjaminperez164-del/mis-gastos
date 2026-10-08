@@ -1,0 +1,58 @@
+name: APK de Android
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar
+        run: npm ci
+
+      - name: Prebuild de Android
+        run: npx expo prebuild --platform android --no-install
+        env:
+          APP_VERSION: ${{ github.ref_name }}
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+
+      - name: Compilar APK
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
+
+      - name: Renombrar APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk "mis-gastos-${GITHUB_REF_NAME}.apk"
+
+      - name: Publicar en el Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: mis-gastos-${{ github.ref_name }}.apk
+          generate_release_notes: true
+          body: |
+            APK de Mis Gastos para instalar entre amigos.
+
+            Está firmado con la clave de depuración de Expo, la misma en cada compilación, así que una versión nueva se puede instalar encima de la anterior.
+
+            No está pensado para Google Play. Los datos siguen solo en el teléfono.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

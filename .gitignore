@@ -1,0 +1,15 @@
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+android/
+ios/
+.kotlin/
+npm-debug.*
+*.log
+.env
+.env.*
+.DS_Store
+*.tsbuildinfo
+coverage/
